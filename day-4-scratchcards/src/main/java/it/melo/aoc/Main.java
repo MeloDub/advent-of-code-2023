@@ -5,35 +5,33 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 public class Main {
 
     public static void main(String[] args) throws IOException {
         var lines = readInput();
 
-        long start = System.currentTimeMillis();
         List<Scratchcard> cards = lines.stream().map(line -> {
             String[] idSplit = line.split(":")[0].split("\\s");
             int id = Integer.parseInt(idSplit[idSplit.length - 1]);
 
             String[] numbers = line.substring(line.indexOf(":") + 1).split("\\|");
 
-            List<String> winNumbers = Arrays.stream(numbers[0].trim().split("\\s+"))
+            Set<String> winNumbers = Arrays.stream(numbers[0].trim().split("\\s+"))
                     .map(String::trim)
-                    .toList();
-            List<String> foundNumbers = Arrays.stream(numbers[1].trim().split("\\s+"))
+                    .collect(Collectors.toSet());
+            Set<String> foundNumbers = Arrays.stream(numbers[1].trim().split("\\s+"))
                     .map(String::trim)
-                    .toList();
+                    .collect(Collectors.toSet());
 
             return new Scratchcard(id, winNumbers, foundNumbers);
         }).toList();
 
         partOneResult(cards);
-
-        long finish = System.currentTimeMillis();
-
-        System.out.println("Execution time (ms): " + (finish - start));
+        partTwoResult(cards);
     }
 
     private static List<String> readInput() throws IOException {
@@ -43,20 +41,28 @@ public class Main {
              var br = new BufferedReader(isr);
              var lines = br.lines()) {
 
-            return lines.collect(Collectors.toList());
+            return lines.toList();
         }
     }
 
     private static void partOneResult(List<Scratchcard> cards) {
         double result = cards.stream()
-                .map(card -> card.winNumbers().stream()
-                        .filter(n -> card.foundNumbers().contains(n))
-                        .count())
-                .filter(winners -> winners > 0)
-                .mapToDouble(winners -> Math.pow(2, winners - 1))
+                .filter(card -> card.winners > 0)
+                .mapToDouble(card -> Math.pow(2, card.winners - 1.0))
                 .sum();
 
         System.out.println("Part one result: " + result);
+    }
+
+    private static void partTwoResult(List<Scratchcard> cards) {
+        long result = IntStream.iterate(cards.size() - 1, i -> i >= 0, i -> i - 1)
+                .mapToObj(cards::get)
+                .peek(card -> card.addNext(cards.subList(card.id, card.id + card.winners)))
+                .flatMap(Scratchcard::flat)
+                .count();
+
+        System.out.println("Part two result: " + result);
+
     }
 
 }
